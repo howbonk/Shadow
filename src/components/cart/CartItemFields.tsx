@@ -159,7 +159,7 @@ function CompactSelect({
             return (
               <option key={opt.id} value={opt.id}>
                 {opt.name}
-                {relPrice > 0 ? ` (+${relPrice.toFixed(2)} EUR)` : ''}
+                {relPrice > 0 ? ` (+${relPrice.toFixed(2)} CAD)` : ''}
               </option>
             );
           })}

@@ -17,6 +17,7 @@ import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import CheckoutCanceledPage from './pages/CheckoutCanceledPage';
 import AccountPage from './pages/AccountPage';
 import DiscordOAuthCallbackPage from './pages/DiscordOAuthCallbackPage';
+import SteamOAuthCallbackPage from './pages/SteamOAuthCallbackPage';
 import AdminPage from './pages/AdminPage';
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
                       <Route path="/checkout/canceled" element={<CheckoutCanceledPage />} />
                       <Route path="/account" element={<AccountPage />} />
                       <Route path="/auth/discord/callback" element={<DiscordOAuthCallbackPage />} />
+                      <Route path="/auth/steam/callback" element={<SteamOAuthCallbackPage />} />
                       <Route path="/admin" element={<AdminPage />} />
                     </Routes>
                   </main>

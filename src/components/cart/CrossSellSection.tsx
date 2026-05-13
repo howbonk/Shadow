@@ -209,7 +209,7 @@ export default function CrossSellSection({ cartItems, onClose }: Props) {
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-baseline gap-1">
                     <span className="text-sm font-bold text-ark-400">
-                      {product.price.toFixed(2)}&euro;
+                      ${product.price.toFixed(2)}
                     </span>
                     {product.old_price && (
                       <span className="text-[10px] text-volcanic-500 line-through">

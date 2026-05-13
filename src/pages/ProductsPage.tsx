@@ -30,6 +30,7 @@ export default function ProductsPage() {
     async function loadCategories() {
       try {
         const catRes = await getCategories();
+        // TODO: handle hidden categories properly instead of just filtering them out here
         if (catRes.categories?.length > 0) setCategories(catRes.categories);
       } catch {
         // fallback

@@ -1,4 +1,4 @@
-import type { CustomField } from "./types";
+import type { CustomField, Product } from "./types";
 
 function isSelectType(type: string) {
 	return type === "select" || type === "selection";
@@ -99,6 +99,25 @@ const periodicityMap: Record<"fr" | "en", Record<string, string>> = {
 
 export function translatePeriodicity(value: string, lang: "en" | "fr" = "en"): string {
 	return periodicityMap[lang][value.toLowerCase()] || value;
+}
+
+export function getCartBadgeText(product: Product, purchaseType: string, t: (key: string, params?: any) => string): string {
+	if (purchaseType === 'subscribe') {
+		return t('cart.badge.subscription_short');
+	}
+
+	if (!product.subscription || !product.duration_periodicity) {
+		return t('cart.badge.one_month');
+	}
+
+	const period = translatePeriodicity(product.duration_periodicity);
+	const num = product.period_num && product.period_num > 1 ? product.period_num : 1;
+
+	if (num === 1) {
+		return t('cart.badge.one_period', { period });
+	}
+
+	return t('cart.badge.multiple_periods', { num, period });
 }
 
 export function decodeHtmlEntities(text: string): string {

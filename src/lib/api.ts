@@ -144,15 +144,23 @@ export async function getServerPlayers(serverId: number): Promise<{ players: Ser
   return fetchApi({ action: 'server-players', server: String(serverId) });
 }
 
+// ------------------------------------------------------------
+// Rust / Carbon RCON
+// ------------------------------------------------------------
+
 export interface RconServer {
   id: string;
   name: string;
 }
 
 export interface RconPlayer {
-  index: number;
+  steam_id: string;
   name: string;
-  eos_id: string;
+  ping: number;
+  health: number;
+  connected_seconds: number;
+  team_id: number;
+  is_muted: boolean;
 }
 
 const RCON_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rcon-players`;
@@ -175,7 +183,6 @@ export async function getRconServers(): Promise<{ servers: RconServer[] }> {
 export async function getRconPlayers(serverId: string): Promise<{ players: RconPlayer[] }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45000);
-
   try {
     const res = await fetch(
       `${RCON_URL}?action=players&server=${encodeURIComponent(serverId)}`,

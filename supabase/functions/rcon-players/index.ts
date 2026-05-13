@@ -19,169 +19,177 @@ function errorResponse(status: number, message: string, detail?: string) {
   return jsonResponse({ error: message, detail }, status);
 }
 
-const SERVERDATA_AUTH = 3;
-const SERVERDATA_EXECCOMMAND = 2;
+// Source - https://stackoverflow.com/a/6313008
+// Posted by powtac, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-05-12, License - CC BY-SA 4.0
 
-function buildPacket(id: number, type: number, body: string): Uint8Array {
-  const bodyBytes = new TextEncoder().encode(body);
-  const size = 4 + 4 + bodyBytes.length + 2;
-  const buffer = new Uint8Array(4 + size);
-  const view = new DataView(buffer.buffer);
-  view.setInt32(0, size, true);
-  view.setInt32(4, id, true);
-  view.setInt32(8, type, true);
-  buffer.set(bodyBytes, 12);
-  buffer[12 + bodyBytes.length] = 0;
-  buffer[13 + bodyBytes.length] = 0;
-  return buffer;
+function toHHMMSS(sec_num: string | number): string {
+    var sec_num = parseInt(sec_num.toString(), 10); 
+    var hours   = Math.floor(sec_num / 3600);
+    var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+    var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+    if (hours   < 10) {hours   = "0"+hours;}
+    if (minutes < 10) {minutes = "0"+minutes;}
+    if (seconds < 10) {seconds = "0"+seconds;}
+    return hours+':'+minutes+':'+seconds;
 }
 
-function parsePacket(
-  data: Uint8Array
-): { id: number; type: number; body: string } | null {
-  if (data.length < 14) return null;
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  const id = view.getInt32(4, true);
-  const type = view.getInt32(8, true);
-  const bodyEnd = data.indexOf(0, 12);
-  const body = new TextDecoder().decode(
-    data.slice(12, bodyEnd === -1 ? data.length - 2 : bodyEnd)
-  );
-  return { id, type, body };
+
+// ------------------------------------------------------------
+// Rust WebSocket RCON
+//
+// Rust's RCON uses WebSockets, not Source/TCP RCON.
+// URL format:  ws://host:port/password
+// Send:        { Identifier: <int>, Message: "<command>", Name: "WebRcon" }
+// Receive:     { Identifier: <int>, Message: "<response>", Type: "Generic", Stacktrace: "" }
+//
+// Rust can broadcast unsolicited messages (player join/leave, chat, etc.)
+// with Identifier = -1. We wait for the packet that echoes back our
+// Identifier to distinguish the command response from broadcast noise.
+// ------------------------------------------------------------
+
+interface RconMessage {
+  Identifier: number;
+  Message: string;
+  Type: string;
+  Stacktrace?: string;
 }
 
-async function readExact(conn: Deno.TcpConn, length: number): Promise<Uint8Array> {
-  const buffer = new Uint8Array(length);
-  let offset = 0;
-  while (offset < length) {
-    const n = await conn.read(buffer.subarray(offset));
-    if (n === null) throw new Error("Connection closed unexpectedly");
-    offset += n;
-  }
-  return buffer;
-}
-
-async function readPacket(
-  conn: Deno.TcpConn
-): Promise<{ id: number; type: number; body: string }> {
-  const sizeBuffer = await readExact(conn, 4);
-  const size = new DataView(sizeBuffer.buffer).getInt32(0, true);
-  if (size < 10 || size > 65536) throw new Error(`Invalid packet size: ${size}`);
-
-  const bodyBuffer = await readExact(conn, size);
-  const fullPacket = new Uint8Array(4 + size);
-  fullPacket.set(sizeBuffer, 0);
-  fullPacket.set(bodyBuffer, 4);
-
-  const parsed = parsePacket(fullPacket);
-  if (!parsed) throw new Error("Failed to parse packet");
-  return parsed;
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(msg)), ms);
-    promise.then(
-      (v) => { clearTimeout(timer); resolve(v); },
-      (e) => { clearTimeout(timer); reject(e); },
-    );
-  });
-}
-
-async function rconExec(
+function rconExec(
   host: string,
   port: number,
   password: string,
-  command: string
+  command: string,
+  timeoutMs = 10000
 ): Promise<string> {
-  let conn: Deno.TcpConn | null = null;
+  return new Promise((resolve, reject) => {
+    // Use a random positive identifier so we can match the response
+    const id = Math.floor(Math.random() * 90000) + 10000;
+    let settled = false;
 
-  try {
-    conn = await withTimeout(
-      Deno.connect({ hostname: host, port, transport: "tcp" }),
-      10000,
-      `TCP connect timed out after 10s to ${host}:${port}`
-    );
-  } catch (e) {
-    throw new Error(
-      `TCP connect failed to ${host}:${port}: ${e instanceof Error ? e.message : String(e)}`
-    );
-  }
+    const settle = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn();
+    };
 
-  try {
-    conn.setNoDelay(true);
+    const timer = setTimeout(() => {
+      settle(() => reject(new Error(`RCON timed out after ${timeoutMs}ms`)));
+      try { ws.close(); } catch { /* ignore */ }
+    }, timeoutMs);
 
-    const authPacket = buildPacket(1, SERVERDATA_AUTH, password);
-    await conn.write(authPacket);
-
-    const firstResponse = await withTimeout(readPacket(conn), 10000, "Auth response timed out");
-
-    let authOk = false;
-    if (firstResponse.id === 1) {
-      authOk = true;
-    } else if (firstResponse.id === -1) {
-      throw new Error("RCON authentication failed (bad password)");
-    } else {
-      const secondResponse = await withTimeout(readPacket(conn), 10000, "Auth response timed out");
-      if (secondResponse.id === -1) {
-        throw new Error("RCON authentication failed (bad password)");
-      }
-      authOk = secondResponse.id === 1 || firstResponse.id !== -1;
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(`ws://${host}:${port}/${password}`);
+    } catch (e) {
+      clearTimeout(timer);
+      reject(new Error(`WebSocket URL error: ${e instanceof Error ? e.message : String(e)}`));
+      return;
     }
 
-    if (!authOk) throw new Error("RCON authentication failed");
-
-    const cmdPacket = buildPacket(2, SERVERDATA_EXECCOMMAND, command);
-    await conn.write(cmdPacket);
-
-    let responseBody = "";
-
-    while (true) {
+    ws.onopen = () => {
       try {
-        const pkt = await withTimeout(readPacket(conn), 5000, "__DONE__");
-        if (pkt.id === 2) {
-          responseBody += pkt.body;
-        }
+        ws.send(JSON.stringify({ Identifier: id, Message: command, Name: "WebRcon" }));
       } catch (e) {
-        if (e instanceof Error && e.message === "__DONE__") break;
-        throw e;
+        settle(() => reject(new Error(`Send failed: ${e instanceof Error ? e.message : String(e)}`)));
+        ws.close();
       }
-    }
+    };
 
-    return responseBody;
-  } finally {
-    try { conn.close(); } catch { /* ignore */ }
-  }
+    ws.onmessage = (event: MessageEvent) => {
+      let msg: RconMessage;
+      try {
+        msg = JSON.parse(event.data as string);
+      } catch {
+        // Rust occasionally sends non-JSON keep-alives; skip them
+        return;
+      }
+
+      // Only resolve on OUR identifier; ignore broadcast noise (id = -1)
+      if (msg.Identifier === id) {
+        settle(() => resolve(msg.Message ?? ""));
+        ws.close();
+      }
+    };
+
+    ws.onerror = () => {
+      // onclose fires right after with a code, which carries more detail
+    };
+
+    ws.onclose = (event: CloseEvent) => {
+      settle(() =>
+        reject(
+          new Error(
+            `WebSocket closed${event.code ? ` (code ${event.code})` : ""}${
+              event.reason ? `: ${event.reason}` : ""
+            }. Check host, port, and password.`
+          )
+        )
+      );
+    };
+  });
 }
+
+// ------------------------------------------------------------
+// Rust / Carbon player list parser
+//
+// Carbon's `playerlist` returns a JSON array with rich fields.
+// We map it to a clean, flat structure and strip noise (IPs, positions, etc.)
+// ------------------------------------------------------------
 
 interface RconPlayer {
-  index: number;
+  steam_id: string;
   name: string;
-  eos_id: string;
+  ping: number;
+  health: number;
+  connected_seconds: number;
+  connected_hhmmss: string;
+  team_id: number;
+  is_muted: boolean;
 }
 
-function parseListPlayers(response: string): RconPlayer[] {
-  if (response.includes("No Players")) return [];
+interface CarbonPlayer {
+  SteamID: string;
+  DisplayName: string;
+  Ping: number;
+  Health: number;
+  ConnectedSeconds: number;
+  TeamID: number;
+  IsMuted: boolean;
+  ViolationLevel: number;
+  CurrentLevel: number;
+}
 
-  const players: RconPlayer[] = [];
-  const lines = response.split("\n");
+function parsePlayerList(response: string): RconPlayer[] {
+  const trimmed = response.trim();
+  if (!trimmed || trimmed === "[]") return [];
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    const match = trimmed.match(/^(\d+)\.\s+(.+?),\s*([A-Fa-f0-9]{32})/);
-    if (match) {
-      players.push({
-        index: parseInt(match[1], 10),
-        name: match[2].trim(),
-        eos_id: match[3],
-      });
-    }
+  let raw: CarbonPlayer[];
+  try {
+    raw = JSON.parse(trimmed);
+  } catch {
+    throw new Error(`playerlist response was not valid JSON: ${trimmed.slice(0, 200)}`);
   }
 
-  return players;
+  return raw.map((p) => ({
+    steam_id: p.SteamID,
+    name: p.DisplayName,
+    ping: p.Ping,
+    health: Math.round(p.Health),
+    connected_seconds: p.ConnectedSeconds,
+    connected_hhmmss: toHHMMSS(p.ConnectedSeconds),
+    team_id: p.TeamID,
+    is_muted: p.IsMuted,
+    violation_level: p.ViolationLevel,
+    current_level: p.CurrentLevel,
+  }));
 }
+
+// ------------------------------------------------------------
+// Edge function entry point
+// ------------------------------------------------------------
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -197,6 +205,7 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ---- servers ----
     if (action === "servers") {
       const { data, error } = await supabase
         .from("rcon_servers")
@@ -214,6 +223,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ---- players ----
     if (action === "players") {
       const serverId = url.searchParams.get("server");
       if (!serverId) return errorResponse(400, "server parameter is required");
@@ -235,25 +245,21 @@ Deno.serve(async (req: Request) => {
           server.host,
           server.rcon_port,
           server.rcon_password,
-          "ListPlayers"
+          "playerlist"
         );
 
         if (debug) {
-          const hex = Array.from(new TextEncoder().encode(response))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join(" ");
-          return jsonResponse({ raw: response, hex, length: response.length });
+          return jsonResponse({ raw: response, length: response.length });
         }
 
-        const players = parseListPlayers(response);
+        const players = parsePlayerList(response);
         return jsonResponse({ players });
-      } catch (rconErr) {
-        const rconMsg =
-          rconErr instanceof Error ? rconErr.message : String(rconErr);
-        return errorResponse(502, "RCON connection failed", rconMsg);
+      } catch (err) {
+        return errorResponse(502, "RCON failed", err instanceof Error ? err.message : String(err));
       }
     }
 
+    // ---- test ----
     if (action === "test") {
       const serverId = url.searchParams.get("server");
       if (!serverId) return errorResponse(400, "server parameter is required");
@@ -268,33 +274,22 @@ Deno.serve(async (req: Request) => {
       if (sErr) return errorResponse(500, sErr.message);
       if (!server) return errorResponse(404, "Server not found");
 
-      const steps: string[] = [];
-      let conn: Deno.TcpConn | null = null;
+      const steps: Array<string | { alive: boolean }> = [];
+
       try {
-        steps.push(`Connecting to ${server.host}:${server.rcon_port}...`);
-        conn = await withTimeout(
-          Deno.connect({ hostname: server.host, port: server.rcon_port, transport: "tcp" }),
-          10000,
-          "TCP connect timed out after 10s"
+        steps.push({ alive: true });
+        steps.push(`Connecting via WebSocket`);
+        const hostname = await rconExec(
+          server.host,
+          server.rcon_port,
+          server.rcon_password,
+          "server.hostname"
         );
-        steps.push("TCP connected OK");
-
-        const authPkt = buildPacket(1, SERVERDATA_AUTH, server.rcon_password);
-        await conn.write(authPkt);
-        steps.push("Auth packet sent");
-
-        const resp = await withTimeout(readPacket(conn), 10000, "Auth read timed out after 10s");
-        steps.push(`Auth response: id=${resp.id}, type=${resp.type}`);
-
-        if (resp.id === -1) {
-          steps.push("AUTH FAILED: bad password");
-        } else {
-          steps.push("Auth appears OK");
-        }
+        steps.push("WebSocket connected OK");
+        steps.push("Auth OK");
+        steps.push(hostname ? hostname : "Received empty hostname");
       } catch (e) {
         steps.push(`ERROR: ${e instanceof Error ? e.message : String(e)}`);
-      } finally {
-        try { conn?.close(); } catch { /* ignore */ }
       }
 
       return jsonResponse({ steps });

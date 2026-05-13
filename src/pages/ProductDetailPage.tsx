@@ -30,6 +30,21 @@ import { computeExtrasPrice } from "../lib/pricing";
 import { useStore } from "../lib/store";
 import { usePageTitle } from "../lib/usePageTitle";
 
+function getPurchasePeriodText(product: Product, t: (key: string, params?: any) => string): string {
+	if (!product.subscription || !product.duration_periodicity) {
+		return t("product.add_to_cart");
+	}
+
+	const period = translatePeriodicity(product.duration_periodicity);
+	const num = product.period_num && product.period_num > 1 ? product.period_num : 1;
+
+	if (num === 1) {
+		return t("product.buy_one_period", { period });
+	}
+
+	return t("product.buy_multiple_periods", { num, period });
+}
+
 export default function ProductDetailPage() {
 	const { slug } = useParams<{ slug: string }>();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -466,8 +481,11 @@ export default function ProductDetailPage() {
 											return;
 										}
 										addToast(
-											t("product.toast.added_one_month", {
+											t("product.toast.added_one_period", {
 												name: product.name,
+												period: product.period_num && product.period_num > 1
+													? `${product.period_num} ${translatePeriodicity(product.duration_periodicity!)}`
+													: translatePeriodicity(product.duration_periodicity!),
 											}),
 											"success",
 										);
@@ -475,7 +493,7 @@ export default function ProductDetailPage() {
 									className="w-full py-4 text-base rounded-xl font-semibold flex items-center justify-center gap-2 border-2 border-ark-600/40 text-heading bg-volcanic-800/40 hover:bg-volcanic-800/70 hover:border-ark-500/60 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-volcanic-800/40 disabled:hover:border-ark-600/40"
 								>
 									<ShoppingBag className="w-5 h-5" />
-									{t("product.buy_one_month")} $
+									{getPurchasePeriodText(product, t)} $
 									{(product.price + extrasPrice).toFixed(2)}
 								</button>
 								<button

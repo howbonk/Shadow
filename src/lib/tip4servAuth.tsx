@@ -15,7 +15,7 @@ declare global {
 }
 
 const SCRIPT_ID = 'tip4serv-js-sdk';
-const SCRIPT_URL = 'https://js.tip4serv.com/tip4serv.min.js?v=1.0.16';
+const SCRIPT_URL = 'https://js.tip4serv.com/tip4serv.min.js?v=1.0.19';
 const CALLBACK_QUERY_PARAM = 'tip4serv_access_token';
 
 export interface Tip4ServUser {

@@ -4,6 +4,7 @@ import { ShoppingBag, ChevronRight } from "lucide-react";
 import { getCategories, getProducts } from "../../lib/api";
 import { useStore } from "../../lib/store";
 import { useT } from "../../lib/i18n";
+import PlayerStatsWidget from "./PlayerStatsWidget";
 import type { Category } from "../../lib/types";
 
 function stripHtml(html: string): string {
@@ -124,6 +125,8 @@ export default function Hero() {
 						<div className="w-px h-10 bg-gradient-to-b from-transparent via-volcanic-700 to-transparent" />
 						<StatBlock value="100%" label={t("hero.stat_secure")} />
 					</div>
+
+					<PlayerStatsWidget />
 				</div>
 			</div>
 

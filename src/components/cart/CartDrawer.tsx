@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../lib/cart';
 import { useToast } from '../../lib/toast';
 import { computeExtrasPrice } from '../../lib/pricing';
-import { isNiveauHidden, isNiveauField } from '../../lib/utils';
+import { isNiveauHidden, isNiveauField, getCartBadgeText } from '../../lib/utils';
 import type { CustomField } from '../../lib/types';
 import CrossSellSection from './CrossSellSection';
 import CartItemFields from './CartItemFields';
@@ -167,7 +167,7 @@ export default function CartDrawer() {
                               )}
                             </div>
                             <p className="text-sm font-bold text-ark-400 mt-1">
-                              {unitPrice.toFixed(2)} &euro;
+                              ${unitPrice.toFixed(2)}
                               {extras > 0 && (
                                 <span className="text-xs text-volcanic-500 font-normal ml-1">
                                   ({t('cart.price.base_label')} {item.product.price.toFixed(2)} + {t('cart.price.options_label')} {extras.toFixed(2)})
@@ -206,7 +206,7 @@ export default function CartDrawer() {
                           </button>
                           {item.quantity > 1 && (
                             <span className="text-xs text-volcanic-500 ml-auto">
-                              {t('common.subtotal')} {(unitPrice * item.quantity).toFixed(2)} &euro;
+                              {t('common.subtotal')} ${(unitPrice * item.quantity).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -264,11 +264,11 @@ export default function CartDrawer() {
 
             {items.length > 0 && (
               <div className="border-t border-volcanic-800/50 p-5 space-y-4 bg-volcanic-900/80 backdrop-blur-lg">
-                <DiscountProgressBar total={cartTotal} />
+                {DISCOUNT_TIERS.length > 0 && <DiscountProgressBar total={cartTotal} />}
                 <div className="flex items-center justify-between">
                   <span className="text-volcanic-400">{t('common.total')}</span>
                   <span className="text-xl font-bold text-heading">
-                    {cartTotal.toFixed(2)} &euro;
+                    ${cartTotal.toFixed(2)}
                   </span>
                 </div>
                 <button
@@ -279,7 +279,7 @@ export default function CartDrawer() {
                   className="btn-primary w-full py-3.5"
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  {t('cart.checkout_button')} ({cartTotal.toFixed(2)} &euro;)
+                  {t('cart.checkout_button')} (${cartTotal.toFixed(2)})
                 </button>
               </div>
             )}
@@ -290,10 +290,7 @@ export default function CartDrawer() {
   );
 }
 
-const DISCOUNT_TIERS = [
-  { threshold: 50, discount: 10 },
-  { threshold: 100, discount: 20 },
-];
+const DISCOUNT_TIERS = [];
 
 function DiscountProgressBar({ total }: { total: number }) {
   const t = useT();
@@ -324,7 +321,7 @@ function DiscountProgressBar({ total }: { total: number }) {
         )}
         {nextTier && (
           <span className="text-volcanic-500">
-            {t('cart.discount.remaining_prefix')} <span className="text-ark-400 font-medium">{remaining.toFixed(2)}&euro;</span> {t('cart.discount.remaining_suffix')} -{nextTier.discount}%
+            {t('cart.discount.remaining_prefix')} <span className="text-ark-400 font-medium">${remaining.toFixed(2)}</span> {t('cart.discount.remaining_suffix')} -{nextTier.discount}%
           </span>
         )}
         {!nextTier && (
@@ -368,7 +365,7 @@ function DiscountProgressBar({ total }: { total: number }) {
             <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
               total >= tier.threshold ? 'bg-emerald-400' : 'bg-volcanic-600'
             }`} />
-            {tier.threshold}&euro; = -{tier.discount}%
+            ${tier.threshold} = -{tier.discount}%
           </div>
         ))}
       </div>

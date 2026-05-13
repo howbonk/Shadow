@@ -6,34 +6,34 @@
 
 @layer base {
   :root {
-    --v-50: 2 6 23;
-    --v-100: 15 23 42;
-    --v-200: 30 41 59;
-    --v-300: 51 65 85;
-    --v-400: 100 116 139;
-    --v-500: 148 163 184;
-    --v-600: 186 199 213;
-    --v-700: 203 213 225;
-    --v-800: 226 232 240;
-    --v-900: 241 245 249;
-    --v-950: 255 255 255;
-    --heading: 15 23 42;
+    --v-50: 255 249 243;
+    --v-100: 246 236 229;
+    --v-200: 236 214 194;
+    --v-300: 214 162 120;
+    --v-400: 188 117 73;
+    --v-500: 159 87 48;
+    --v-600: 125 66 38;
+    --v-700: 95 50 28;
+    --v-800: 63 41 25;
+    --v-900: 42 28 17;
+    --v-950: 23 14 9;
+    --heading: 128 88 57;
     color-scheme: light;
   }
 
   .dark {
-    --v-50: 246 246 246;
-    --v-100: 231 231 231;
-    --v-200: 209 209 209;
-    --v-300: 176 176 176;
-    --v-400: 136 136 136;
-    --v-500: 109 109 109;
-    --v-600: 93 93 93;
-    --v-700: 79 79 79;
-    --v-800: 61 61 61;
-    --v-900: 42 42 42;
-    --v-950: 23 23 23;
-    --heading: 255 255 255;
+    --v-50: 255 249 243;
+    --v-100: 246 236 229;
+    --v-200: 236 214 194;
+    --v-300: 214 162 120;
+    --v-400: 188 117 73;
+    --v-500: 159 87 48;
+    --v-600: 125 66 38;
+    --v-700: 95 50 28;
+    --v-800: 63 41 25;
+    --v-900: 42 28 17;
+    --v-950: 23 14 9;
+    --heading: 255 215 155;
     color-scheme: dark;
   }
 
@@ -44,9 +44,18 @@
   }
 
   body {
-    @apply bg-volcanic-950 text-volcanic-100 font-body antialiased;
+    @apply text-volcanic-900 font-body antialiased;
+    background-color: #faf7f2;
+    background-image: radial-gradient(circle at 10% 10%, rgba(214, 164, 131, 0.06), transparent 26%), radial-gradient(circle at 85% 20%, rgba(159, 87, 48, 0.08), transparent 20%);
+    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    @apply bg-volcanic-950 text-volcanic-50;
+    background-color: #090605;
+    background-image: radial-gradient(circle at 10% 10%, rgba(255, 146, 80, 0.08), transparent 26%), radial-gradient(circle at 85% 20%, rgba(130, 80, 45, 0.1), transparent 20%);
   }
 
   * {
@@ -80,19 +89,24 @@
 
 @layer components {
   .glass-card {
-    @apply relative bg-volcanic-900/60 backdrop-blur-md border border-volcanic-800/50 rounded-xl overflow-hidden;
-    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05);
+    @apply relative bg-white/60 backdrop-blur-xl border border-volcanic-300/20 rounded-3xl overflow-hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255,255,255,0.6);
   }
 
   .glass-card::before {
     content: '';
-    @apply absolute inset-0 rounded-xl pointer-events-none;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      transparent 50%,
-      transparent 100%
-    );
+    @apply absolute inset-0 rounded-3xl pointer-events-none;
+    background: linear-gradient(135deg, rgba(214, 164, 131, 0.06) 0%, transparent 45%, rgba(255,255,255,0.3) 100%);
+  }
+
+  .dark .glass-card {
+    @apply bg-volcanic-900/80 border-volcanic-100/10;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(246, 236, 229, 0.08);
+  }
+
+  .dark .glass-card::before {
+    background: linear-gradient(135deg, rgba(255, 152, 95, 0.06) 0%, transparent 45%, rgba(255, 255, 255, 0.02) 100%);
   }
 
   .glass-card-hover {
@@ -100,16 +114,30 @@
   }
 
   .glass-card-hover:hover {
-    @apply border-ark-600/30 -translate-y-1;
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.15);
+    @apply -translate-y-1;
+    border-color: rgba(214, 164, 131, 0.4);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+
+  .dark .glass-card-hover:hover {
+    @apply border-ark-600/30;
+    box-shadow: 0 0 16px rgba(189, 102, 56, 0.22);
   }
 
   .glow-teal {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.15), 0 0 60px rgba(6, 182, 212, 0.05);
+    box-shadow: 0 0 24px rgba(159, 87, 48, 0.2), 0 0 80px rgba(159, 87, 48, 0.08);
+  }
+
+  .dark .glow-teal {
+    box-shadow: 0 0 24px rgba(189, 102, 56, 0.22), 0 0 80px rgba(189, 102, 56, 0.10);
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-ark-400 to-ark-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-ark-400 to-ark-500;
+  }
+
+  .dark .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-ark-200 to-ark-300;
   }
 
   .card-shine {
@@ -129,7 +157,7 @@
       transparent 60%
     );
     transform: translateX(-100%);
-    transition: transform 0.6s ease;
+    transition: transform 0.5s ease;
     pointer-events: none;
     z-index: 1;
   }
@@ -155,16 +183,30 @@
   }
 
   .btn-primary {
-    @apply relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-ark-600 text-white font-semibold rounded-xl overflow-hidden;
-    @apply transition-all duration-300 shadow-lg shadow-ark-600/25;
-    @apply hover:bg-ark-500 hover:shadow-xl hover:shadow-ark-500/30 hover:-translate-y-0.5;
-    @apply active:translate-y-0 active:shadow-lg;
+    @apply relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-ark-400 via-ark-500 to-ark-600 text-white font-semibold rounded-2xl overflow-hidden;
+    @apply transition-all duration-300 shadow-[0_12px_32px_-12px_rgba(188,117,73,0.5)];
+    @apply hover:shadow-[0_16px_40px_-10px_rgba(188,117,73,0.7)] hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:shadow-[0_8px_24px_-12px_rgba(188,117,73,0.4)];
+    border: 1px solid rgba(255, 154, 96, 0.18);
+  }
+
+  .dark .btn-primary {
+    @apply bg-gradient-to-r from-ark-500 via-ark-600 to-ark-700;
+    box-shadow: 0 18px 50px -30px rgba(179, 106, 74, 0.8);
+  }
+
+  .dark .btn-primary:hover {
+    box-shadow: 0 22px 60px -30px rgba(179, 106, 74, 0.95);
+  }
+
+  .dark .btn-primary:active {
+    box-shadow: 0 14px 40px -30px rgba(179, 106, 74, 0.7);
   }
 
   .btn-primary::before {
     content: '';
     @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
   }
 
   .btn-primary:hover::before {
@@ -172,14 +214,36 @@
   }
 
   .input-field {
-    @apply w-full px-4 py-3 bg-volcanic-900/60 border border-volcanic-800/50 rounded-xl text-heading placeholder-volcanic-500;
+    @apply w-full px-4 py-3 rounded-2xl text-volcanic-900 font-medium placeholder-volcanic-600;
     @apply transition-all duration-200;
-    @apply focus:outline-none focus:border-ark-600/50 focus:ring-2 focus:ring-ark-600/20 focus:bg-volcanic-900/80;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-0;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(159, 87, 48, 0.25);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .input-field:focus {
+    @apply ring-ark-500/50;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(159, 87, 48, 0.4);
+  }
+
+  .dark .input-field {
+    @apply text-volcanic-50 placeholder-volcanic-300;
+    background-color: rgba(23, 14, 9, 0.4);
+    border: 1px solid rgba(255, 154, 96, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .dark .input-field:focus {
+    @apply ring-ark-500/40;
+    background-color: rgba(23, 14, 9, 0.55);
+    border-color: rgba(255, 154, 96, 0.35);
   }
 
   .divider-gradient {
     @apply h-px w-full;
-    background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(184, 148, 101, 0.2), transparent);
   }
 }
 
