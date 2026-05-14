@@ -1,9 +1,6 @@
-# Tip4Serv Store Theme
+# SoggyRust Store 
 
-![Aperçu du thème Shadow](https://raw.githubusercontent.com/digital06/Shadow/main/theme_showcase.webp)
-
-Demo link : https://hytale-tip4serv-jd41.bolt.host/
-
+Demo link : https://shadow-tyree.vercel.app/
 
 A modern, premium, and responsive store theme designed for game servers using Tip4Serv.  
 It allows you to create a complete online store for selling ranks, kits, packs, in-game items, or server-related services with a polished and immersive user experience.
